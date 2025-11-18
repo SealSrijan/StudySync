@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, orderBy } from 'firebase/firestore';
-import { initializeApp } from 'firebase/app';
-import { firebaseConfig } from './firebase';
+import { onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { collection, addDoc, query, where, onSnapshot, doc, deleteDoc, orderBy } from 'firebase/firestore';
+import { app, auth, db } from './firebase';
 import type { Theme, StudyEntry, Reminder } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import Header from './components/Header';
@@ -19,10 +18,7 @@ const App: React.FC = () => {
     return <FirebaseConfigWarning />;
   }
 
-  // Memoize Firebase services to prevent re-initialization on re-renders
-  const app = useMemo(() => initializeApp(firebaseConfig), []);
-  const auth = useMemo(() => getAuth(app), [app]);
-  const db = useMemo(() => getFirestore(app), [app]);
+  // Use shared Firebase services from `firebase.ts`
 
   const [theme, setTheme] = useLocalStorage<Theme>('studysync_theme', 'light');
   const [user, setUser] = useState<User | null>(null);
