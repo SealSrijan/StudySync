@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, type Auth as FirebaseAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, type Auth as FirebaseAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signInAnonymously } from 'firebase/auth';
 import { GoogleIcon } from './Icons';
 
 interface AuthProps {
@@ -30,9 +30,20 @@ const Auth: React.FC<AuthProps> = ({ auth }) => {
         setError(null);
         const provider = new GoogleAuthProvider();
         try {
+            // Try popup first (better UX). If popup is blocked, fall back to redirect.
             await signInWithPopup(auth, provider);
         } catch (err: any) {
-            setError(err.message);
+            // If popup is blocked or fails due to environment, fall back to redirect
+            const code = err?.code || '';
+            if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment' || code === 'auth/cancelled-popup-request') {
+                try {
+                    await signInWithRedirect(auth, provider);
+                } catch (e: any) {
+                    setError(e.message || 'Google sign-in failed (redirect).');
+                }
+            } else {
+                setError(err.message || 'Google sign-in failed.');
+            }
         }
     };
 
