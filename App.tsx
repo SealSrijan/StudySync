@@ -7,7 +7,7 @@ import type { Theme, StudyEntry, Reminder } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import Header from './components/Header';
 import EntryForm from './components/EntryForm';
-import Diary from './components/Diary';
+import Diary from './components/DiaryUI';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
 import FirebaseConfigWarning from './components/FirebaseConfigWarning';
