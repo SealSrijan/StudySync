@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "firebase": "npx firebase emulators:start"
   },
   "dependencies": {
     "firebase": "^12.6.0",
@@ -18,6 +19,7 @@
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "firebase-tools": "^14.25.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

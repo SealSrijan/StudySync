@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, orderBy } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
-import { firebaseConfig } from './firebaseConfig';
+import { firebaseConfig } from './firebase';
 import type { Theme, StudyEntry, Reminder } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import Header from './components/Header';

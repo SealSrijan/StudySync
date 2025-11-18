@@ -1,4 +1,4 @@
-import { db, auth } from "../firebaseConfig";
+import { db, auth } from "../firebase";
 import {
   collection,
   addDoc,
@@ -12,12 +12,15 @@ import {
 import type { StudyEntry } from "../types";
 
 // Add entry
-export const addDiaryEntry = async (entry: Omit<StudyEntry, "id" | "createdAt">) => {
+export const addDiaryEntry = async (
+  entry: Omit<StudyEntry, "id" | "createdAt" | "uid">
+) => {
   const uid = auth.currentUser?.uid;
   if (!uid) return;
 
   await addDoc(collection(db, "users", uid, "diaryEntries"), {
     ...entry,
+    uid,
     createdAt: new Date().toISOString(),
   });
 };
