@@ -31,7 +31,7 @@ const Diary: React.FC = () => {
 
   // Handle adding an entry
   const handleAddEntry = async (
-    entry: Omit<StudyEntry, "id" | "createdAt" | "uid">
+    entry: any
   ) => {
     try {
       await addDiaryEntry(entry);

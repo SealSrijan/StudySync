@@ -6,57 +6,49 @@ import {
   query,
   orderBy,
   doc,
-  deleteDoc,
-  updateDoc,
-  where,
+  deleteDoc
 } from "firebase/firestore";
 import type { StudyEntry } from "../types";
 
-// Add entry to top-level `entries` collection (consistent with App.tsx)
-export const addDiaryEntry = async (
-  entry: Omit<StudyEntry, "id" | "createdAt" | "uid">
-) => {
+export const addDiaryEntry = async (entry: Omit<StudyEntry, "id" | "createdAt">) => {
   const uid = auth.currentUser?.uid;
-  if (!uid) throw new Error("Not authenticated");
+  if (!uid) {
+    console.warn("User not logged in, cannot add entry");
+    return;
+  }
 
-  await addDoc(collection(db, "entries"), {
+  await addDoc(collection(db, "users", uid, "diaryEntries"), {
     ...entry,
-    uid,
-    createdAt: new Date().toISOString(),
+    createdAt: new Date().toISOString()
   });
 };
 
-// Listen to entries for given user (uses auth.currentUser internally)
 export const listenDiaryEntries = (
   callback: (entries: StudyEntry[]) => void
 ) => {
   const uid = auth.currentUser?.uid;
-  if (!uid) return () => {};
+  if (!uid) {
+    console.warn("User not logged in, cannot listen");
+    return () => {};
+  }
 
   const q = query(
-    collection(db, "entries"),
-    where("uid", "==", uid),
+    collection(db, "users", uid, "diaryEntries"),
     orderBy("createdAt", "desc")
   );
 
-  return onSnapshot(q, (snapshot) => {
-    const entries: StudyEntry[] = snapshot.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as Omit<StudyEntry, "id">),
+  return onSnapshot(q, snapshot => {
+    const entries: StudyEntry[] = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as any)
     }));
     callback(entries);
   });
 };
 
-// Delete
 export const deleteDiaryEntry = async (id: string) => {
-  await deleteDoc(doc(db, "entries", id));
-};
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
 
-// Edit
-export const editDiaryEntry = async (
-  id: string,
-  updatedData: Partial<StudyEntry>
-) => {
-  await updateDoc(doc(db, "entries", id), updatedData);
+  await deleteDoc(doc(db, "users", uid, "diaryEntries", id));
 };
