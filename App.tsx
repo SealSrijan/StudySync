@@ -214,7 +214,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="text-center py-4 text-xs text-pink-400 dark:text-slate-500">
-        StudySync Diary - Track your path to success. <strong>By SRIJAN ✨</strong>
+        StudySync Diary - Track your path to success. <strong>© SRIJAN 2025</strong>
       </footer>
     </div>
   );
