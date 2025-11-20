@@ -22,7 +22,6 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, user, onSignOut }) 
             <div>
               <h1 className="text-xl font-bold text-pink-800 dark:text-pink-300">StudySync</h1>
               <p className="text-xs text-pink-500 dark:text-pink-400/80">Your Personal Study Tracker</p>
-              <p><strong>By SRIJAN ✨</strong></p>
             </div>
           </div>
           <div className="flex items-center gap-4">
