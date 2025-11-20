@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { collection, addDoc, query, where, onSnapshot, doc, deleteDoc, orderBy } from 'firebase/firestore';
-import { auth, db } from './firebaseConfig'; // only import what firebaseConfig actually exports
+import { auth, db } from './firebaseConfig';
 import type { Theme, StudyEntry, Reminder } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import Header from './components/Header';
 import EntryForm from './components/EntryForm';
-import Diary from './components/Diary'; // explicit path to avoid casing issues on Windows
+import Diary from './components/Diary';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
 import ReminderModal from './components/ReminderModal';
 
 const App: React.FC = () => {
-  // removed firebaseConfig runtime check that referenced a missing variable
+
   const [theme, setTheme] = useLocalStorage<Theme>('studysync_theme', 'light');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,6 +20,12 @@ const App: React.FC = () => {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
 
+  // SIGN OUT
+  const handleSignOut = async () => {
+    await signOut(auth);
+  };
+
+  // AUTH LISTENER
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
@@ -28,72 +34,75 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // DIARY + REMINDER LISTENERS
   useEffect(() => {
-  if (!user) {
-    setEntries([]);
-    setReminders([]);
-    return;
-  }
+    if (!user) {
+      setEntries([]);
+      setReminders([]);
+      return;
+    }
 
-  const entriesQuery = query(
-    collection(db, "users", user.uid, "diaryEntries"),
-    orderBy("createdAt", "desc")
-  );
+    // DIARY
+    const entriesQuery = query(
+      collection(db, "users", user.uid, "diaryEntries"),
+      orderBy("createdAt", "desc")
+    );
 
-  const entriesUnsubscribe = onSnapshot(entriesQuery, (snapshot) => {
-    const userEntries = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as StudyEntry));
-    setEntries(userEntries);
-  });
+    const entriesUnsub = onSnapshot(entriesQuery, (snapshot) => {
+      const userEntries = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as StudyEntry));
+      setEntries(userEntries);
+    });
 
-  const remindersQuery = query(
-    collection(db, "reminders"),
-    where("uid", "==", user.uid),
-    orderBy("date", "asc")
-  );
-  const remindersUnsubscribe = onSnapshot(remindersQuery, (snapshot) => {
-    const userReminders = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Reminder));
-    setReminders(userReminders);
-  });
+    // REMINDERS
+    const remindersQuery = query(
+      collection(db, "users", user.uid, "reminders"),
+      orderBy("date", "asc")
+    );
 
-  return () => {
-    entriesUnsubscribe();
-    remindersUnsubscribe();
-  };
-}, [user]);
+    const remindersUnsub = onSnapshot(remindersQuery, (snapshot) => {
+      const userReminders = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Reminder));
+      setReminders(userReminders);
+    });
 
+    return () => {
+      entriesUnsub();
+      remindersUnsub();
+    };
+  }, [user]);
+
+  // THEME
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+    if (theme === 'dark') root.classList.add('dark');
+    else root.classList.remove('dark');
   }, [theme]);
 
+  // TOGGLE THEME
   const toggleTheme = useCallback(() => {
-    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   }, [setTheme]);
 
+  // ADD DIARY ENTRY
   const addEntry = useCallback(async (entry: Omit<StudyEntry, 'id' | 'createdAt' | 'uid'>) => {
-  if (!user) return;
-  const newEntry = {
-    ...entry,
-    uid: user.uid,
-    createdAt: new Date().toISOString(),
-  };
-  await addDoc(collection(db, "users", user.uid, "diaryEntries"), newEntry);
-}, [user]);
+    if (!user) return;
+    const newEntry = {
+      ...entry,
+      uid: user.uid,
+      createdAt: new Date().toISOString(),
+    };
+    await addDoc(collection(db, "users", user.uid, "diaryEntries"), newEntry);
+  }, [user]);
 
-
+  // DELETE DIARY ENTRY
   const deleteEntry = useCallback(async (id: string) => {
-  if (window.confirm("Are you sure you want to delete this entry?")) {
-    await deleteDoc(doc(db, "users", user?.uid || "", "diaryEntries", id));
-  }
-}, [user]);
+    if (!user) return;
+    await deleteDoc(doc(db, "users", user.uid, "diaryEntries", id));
+  }, [user]);
 
-
+  // ADD REMINDER
   const addReminder = useCallback(async (reminder: { title: string; date: string }) => {
     if (!user) return;
+
     const { title, date } = reminder;
 
     if (!title.trim() || !date) {
@@ -102,18 +111,19 @@ const App: React.FC = () => {
     }
 
     const newReminder = { title, date, uid: user.uid };
-    await addDoc(collection(db, "reminders"), newReminder);
+
+    await addDoc(collection(db, "users", user.uid, "reminders"), newReminder);
+
     setIsReminderModalOpen(false);
   }, [user]);
 
+  // DELETE REMINDER
   const deleteReminder = useCallback(async (id: string) => {
-    await deleteDoc(doc(db, "reminders", id));
-  }, []);
+    if (!user) return;
+    await deleteDoc(doc(db, "users", user.uid, "reminders", id));
+  }, [user]);
 
-  const handleSignOut = async () => {
-    await signOut(auth);
-  };
-
+  // WEEKLY SUMMARY
   const weeklySummary = useMemo(() => {
     const summary: { [subject: string]: number } = {};
     let totalHours = 0;
@@ -126,27 +136,27 @@ const App: React.FC = () => {
         totalHours += entry.hours;
       }
     });
+
     return { bySubject: summary, total: totalHours };
   }, [entries]);
 
+  // STREAK
   const streak = useMemo(() => {
     if (entries.length === 0) return 0;
     const studyDates = new Set(entries.map(e => e.date));
     let currentStreak = 0;
     const today = new Date();
     for (let i = 0; i < 365; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const dateString = d.toISOString().slice(0, 10);
-      if (studyDates.has(dateString)) {
-        currentStreak++;
-      } else {
-        break;
-      }
+      const day = new Date(today);
+      day.setDate(today.getDate() - i);
+      const dateString = day.toISOString().slice(0, 10);
+      if (!studyDates.has(dateString)) break;
+      currentStreak++;
     }
     return currentStreak;
   }, [entries]);
 
+  // LOADING
   if (loading) {
     return (
       <div className="min-h-screen bg-pink-50 dark:bg-slate-900 flex items-center justify-center">
@@ -158,6 +168,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans transition-colors duration-300">
       <Header theme={theme} toggleTheme={toggleTheme} user={user} onSignOut={handleSignOut} />
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!user ? (
           <Auth auth={auth} />
@@ -168,6 +179,7 @@ const App: React.FC = () => {
                 <EntryForm onAddEntry={addEntry} streak={streak} />
                 <Diary />
               </div>
+
               <Sidebar
                 summary={weeklySummary}
                 reminders={reminders}
@@ -175,6 +187,7 @@ const App: React.FC = () => {
                 onDeleteReminder={deleteReminder}
               />
             </div>
+
             <ReminderModal
               isOpen={isReminderModalOpen}
               onClose={() => setIsReminderModalOpen(false)}
@@ -183,6 +196,7 @@ const App: React.FC = () => {
           </>
         )}
       </main>
+
       <footer className="text-center py-4 text-xs text-pink-400 dark:text-slate-500">
         StudySync Diary - Track your path to success. <strong>By SRIJAN ✨</strong>
       </footer>
