@@ -1,25 +1,18 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { collection, addDoc, query, where, onSnapshot, doc, deleteDoc, orderBy } from 'firebase/firestore';
-import { app, auth, db } from './firebaseConfig';
+import { auth, db } from './firebaseConfig'; // only import what firebaseConfig actually exports
 import type { Theme, StudyEntry, Reminder } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import Header from './components/Header';
 import EntryForm from './components/EntryForm';
-import Diary from './components/DiaryUI';
+import Diary from './components/Diary.tsx'; // explicit path to avoid casing issues on Windows
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
-import FirebaseConfigWarning from './components/FirebaseConfigWarning';
 import ReminderModal from './components/ReminderModal';
 
 const App: React.FC = () => {
-  // Check for placeholder credentials before initializing Firebase
-  if (firebaseConfig.apiKey === 'YOUR_API_KEY' || firebaseConfig.projectId === 'YOUR_PROJECT_ID') {
-    return <FirebaseConfigWarning />;
-  }
-
-  // Use shared Firebase services from `firebase.ts`
-
+  // removed firebaseConfig runtime check that referenced a missing variable
   const [theme, setTheme] = useLocalStorage<Theme>('studysync_theme', 'light');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +26,7 @@ const App: React.FC = () => {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [auth]);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -42,23 +35,31 @@ const App: React.FC = () => {
       return;
     }
 
-    const entriesQuery = query(collection(db, "entries"), where("uid", "==", user.uid), orderBy("createdAt", "desc"));
+    const entriesQuery = query(
+      collection(db, "entries"),
+      where("uid", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
     const entriesUnsubscribe = onSnapshot(entriesQuery, (snapshot) => {
-      const userEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudyEntry));
+      const userEntries = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as StudyEntry));
       setEntries(userEntries);
     });
 
-    const remindersQuery = query(collection(db, "reminders"), where("uid", "==", user.uid), orderBy("date", "asc"));
+    const remindersQuery = query(
+      collection(db, "reminders"),
+      where("uid", "==", user.uid),
+      orderBy("date", "asc")
+    );
     const remindersUnsubscribe = onSnapshot(remindersQuery, (snapshot) => {
-      const userReminders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reminder));
+      const userReminders = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Reminder));
       setReminders(userReminders);
     });
-    
+
     return () => {
       entriesUnsubscribe();
       remindersUnsubscribe();
     };
-  }, [user, db]);
+  }, [user]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -72,7 +73,7 @@ const App: React.FC = () => {
   const toggleTheme = useCallback(() => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   }, [setTheme]);
-  
+
   const addEntry = useCallback(async (entry: Omit<StudyEntry, 'id' | 'createdAt' | 'uid'>) => {
     if (!user) return;
     const newEntry = {
@@ -81,13 +82,13 @@ const App: React.FC = () => {
       createdAt: new Date().toISOString(),
     };
     await addDoc(collection(db, "entries"), newEntry);
-  }, [user, db]);
-  
+  }, [user]);
+
   const deleteEntry = useCallback(async (id: string) => {
     if (window.confirm("Are you sure you want to delete this entry?")) {
       await deleteDoc(doc(db, "entries", id));
     }
-  }, [db]);
+  }, []);
 
   const addReminder = useCallback(async (reminder: { title: string; date: string }) => {
     if (!user) return;
@@ -97,15 +98,15 @@ const App: React.FC = () => {
       alert("Title and date are required.");
       return;
     }
-    
+
     const newReminder = { title, date, uid: user.uid };
     await addDoc(collection(db, "reminders"), newReminder);
     setIsReminderModalOpen(false);
-  }, [user, db]);
+  }, [user]);
 
   const deleteReminder = useCallback(async (id: string) => {
     await deleteDoc(doc(db, "reminders", id));
-  }, [db]);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -163,7 +164,7 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 <EntryForm onAddEntry={addEntry} streak={streak} />
-                <Diary entries={entries} onDeleteEntry={deleteEntry} />
+                <Diary />
               </div>
               <Sidebar
                 summary={weeklySummary}
