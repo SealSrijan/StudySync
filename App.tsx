@@ -29,37 +29,37 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!user) {
-      setEntries([]);
-      setReminders([]);
-      return;
-    }
+  if (!user) {
+    setEntries([]);
+    setReminders([]);
+    return;
+  }
 
-    const entriesQuery = query(
-      collection(db, "entries"),
-      where("uid", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
-    const entriesUnsubscribe = onSnapshot(entriesQuery, (snapshot) => {
-      const userEntries = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as StudyEntry));
-      setEntries(userEntries);
-    });
+  const entriesQuery = query(
+    collection(db, "users", user.uid, "diaryEntries"),
+    orderBy("createdAt", "desc")
+  );
 
-    const remindersQuery = query(
-      collection(db, "reminders"),
-      where("uid", "==", user.uid),
-      orderBy("date", "asc")
-    );
-    const remindersUnsubscribe = onSnapshot(remindersQuery, (snapshot) => {
-      const userReminders = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Reminder));
-      setReminders(userReminders);
-    });
+  const entriesUnsubscribe = onSnapshot(entriesQuery, (snapshot) => {
+    const userEntries = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as StudyEntry));
+    setEntries(userEntries);
+  });
 
-    return () => {
-      entriesUnsubscribe();
-      remindersUnsubscribe();
-    };
-  }, [user]);
+  const remindersQuery = query(
+    collection(db, "reminders"),
+    where("uid", "==", user.uid),
+    orderBy("date", "asc")
+  );
+  const remindersUnsubscribe = onSnapshot(remindersQuery, (snapshot) => {
+    const userReminders = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Reminder));
+    setReminders(userReminders);
+  });
+
+  return () => {
+    entriesUnsubscribe();
+    remindersUnsubscribe();
+  };
+}, [user]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -75,20 +75,22 @@ const App: React.FC = () => {
   }, [setTheme]);
 
   const addEntry = useCallback(async (entry: Omit<StudyEntry, 'id' | 'createdAt' | 'uid'>) => {
-    if (!user) return;
-    const newEntry = {
-      ...entry,
-      uid: user.uid,
-      createdAt: new Date().toISOString(),
-    };
-    await addDoc(collection(db, "entries"), newEntry);
-  }, [user]);
+  if (!user) return;
+  const newEntry = {
+    ...entry,
+    uid: user.uid,
+    createdAt: new Date().toISOString(),
+  };
+  await addDoc(collection(db, "users", user.uid, "diaryEntries"), newEntry);
+}, [user]);
+
 
   const deleteEntry = useCallback(async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this entry?")) {
-      await deleteDoc(doc(db, "entries", id));
-    }
-  }, []);
+  if (window.confirm("Are you sure you want to delete this entry?")) {
+    await deleteDoc(doc(db, "users", user?.uid || "", "diaryEntries", id));
+  }
+}, [user]);
+
 
   const addReminder = useCallback(async (reminder: { title: string; date: string }) => {
     if (!user) return;
