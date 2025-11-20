@@ -6,7 +6,7 @@ import type { Theme, StudyEntry, Reminder } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import Header from './components/Header';
 import EntryForm from './components/EntryForm';
-import Diary from './components/Diary.tsx'; // explicit path to avoid casing issues on Windows
+import Diary from './components/Diary'; // explicit path to avoid casing issues on Windows
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
 import ReminderModal from './components/ReminderModal';
@@ -184,7 +184,7 @@ const App: React.FC = () => {
         )}
       </main>
       <footer className="text-center py-4 text-xs text-pink-400 dark:text-slate-500">
-        StudySync Diary - Track your path to success.
+        StudySync Diary - Track your path to success. <strong>By SRIJAN ✨</strong>
       </footer>
     </div>
   );
