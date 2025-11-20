@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { collection, addDoc, query, where, onSnapshot, doc, deleteDoc, orderBy } from 'firebase/firestore';
+import { collection, addDoc, query, onSnapshot, doc, deleteDoc, orderBy } from 'firebase/firestore';
 import { auth, db } from './firebaseConfig';
 import type { Theme, StudyEntry, Reminder } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
@@ -12,7 +12,6 @@ import Auth from './components/Auth';
 import ReminderModal from './components/ReminderModal';
 
 const App: React.FC = () => {
-
   const [theme, setTheme] = useLocalStorage<Theme>('studysync_theme', 'light');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,14 +26,14 @@ const App: React.FC = () => {
 
   // AUTH LISTENER
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // DIARY + REMINDER LISTENERS
+  // DIARY + REMINDERS LISTENERS
   useEffect(() => {
     if (!user) {
       setEntries([]);
@@ -42,25 +41,31 @@ const App: React.FC = () => {
       return;
     }
 
-    // DIARY
+    // ---- DIARY LISTENER ----
     const entriesQuery = query(
       collection(db, "users", user.uid, "diaryEntries"),
       orderBy("createdAt", "desc")
     );
 
     const entriesUnsub = onSnapshot(entriesQuery, (snapshot) => {
-      const userEntries = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as StudyEntry));
+      const userEntries = snapshot.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as any)
+      }) as StudyEntry);
       setEntries(userEntries);
     });
 
-    // REMINDERS
+    // ---- REMINDERS LISTENER ----
     const remindersQuery = query(
       collection(db, "users", user.uid, "reminders"),
       orderBy("date", "asc")
     );
 
     const remindersUnsub = onSnapshot(remindersQuery, (snapshot) => {
-      const userReminders = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Reminder));
+      const userReminders = snapshot.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as any)
+      }) as Reminder);
       setReminders(userReminders);
     });
 
@@ -70,19 +75,18 @@ const App: React.FC = () => {
     };
   }, [user]);
 
-  // THEME
+  // THEME HANDLING
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') root.classList.add('dark');
     else root.classList.remove('dark');
   }, [theme]);
 
-  // TOGGLE THEME
   const toggleTheme = useCallback(() => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   }, [setTheme]);
 
-  // ADD DIARY ENTRY
+  // ---- ADD DIARY ENTRY ----
   const addEntry = useCallback(async (entry: Omit<StudyEntry, 'id' | 'createdAt' | 'uid'>) => {
     if (!user) return;
     const newEntry = {
@@ -93,13 +97,13 @@ const App: React.FC = () => {
     await addDoc(collection(db, "users", user.uid, "diaryEntries"), newEntry);
   }, [user]);
 
-  // DELETE DIARY ENTRY
+  // ---- DELETE DIARY ENTRY ----
   const deleteEntry = useCallback(async (id: string) => {
     if (!user) return;
     await deleteDoc(doc(db, "users", user.uid, "diaryEntries", id));
   }, [user]);
 
-  // ADD REMINDER
+  // ---- ADD REMINDER ----
   const addReminder = useCallback(async (reminder: { title: string; date: string }) => {
     if (!user) return;
 
@@ -110,20 +114,30 @@ const App: React.FC = () => {
       return;
     }
 
-    const newReminder = { title, date, uid: user.uid };
+    const newReminder = {
+      title,
+      date,
+      uid: user.uid,
+    };
 
-    await addDoc(collection(db, "users", user.uid, "reminders"), newReminder);
+    await addDoc(
+      collection(db, "users", user.uid, "reminders"),
+      newReminder
+    );
 
     setIsReminderModalOpen(false);
   }, [user]);
 
-  // DELETE REMINDER
+  // ---- DELETE REMINDER ----
   const deleteReminder = useCallback(async (id: string) => {
     if (!user) return;
-    await deleteDoc(doc(db, "users", user.uid, "reminders", id));
+
+    await deleteDoc(
+      doc(db, "users", user.uid, "reminders", id)
+    );
   }, [user]);
 
-  // WEEKLY SUMMARY
+  // ---- WEEKLY SUMMARY ----
   const weeklySummary = useMemo(() => {
     const summary: { [subject: string]: number } = {};
     let totalHours = 0;
@@ -140,12 +154,13 @@ const App: React.FC = () => {
     return { bySubject: summary, total: totalHours };
   }, [entries]);
 
-  // STREAK
+  // ---- STREAK CALCULATION ----
   const streak = useMemo(() => {
     if (entries.length === 0) return 0;
     const studyDates = new Set(entries.map(e => e.date));
     let currentStreak = 0;
     const today = new Date();
+
     for (let i = 0; i < 365; i++) {
       const day = new Date(today);
       day.setDate(today.getDate() - i);
@@ -156,7 +171,7 @@ const App: React.FC = () => {
     return currentStreak;
   }, [entries]);
 
-  // LOADING
+  // ---- LOADING ----
   if (loading) {
     return (
       <div className="min-h-screen bg-pink-50 dark:bg-slate-900 flex items-center justify-center">
@@ -165,6 +180,7 @@ const App: React.FC = () => {
     );
   }
 
+  // ---- MAIN UI ----
   return (
     <div className="min-h-screen bg-pink-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans transition-colors duration-300">
       <Header theme={theme} toggleTheme={toggleTheme} user={user} onSignOut={handleSignOut} />
