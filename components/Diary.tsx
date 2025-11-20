@@ -1,42 +1,25 @@
 import React, { useState, useEffect } from "react";
-import DiaryUI from "./DiaryUI"; // make sure path is correct
-import EntryForm from "./EntryForm";
-import { listenDiaryEntries, deleteDiaryEntry, addDiaryEntry } from "./diary";
+import DiaryUI from "./DiaryUI"; 
+import { listenDiaryEntries, deleteDiaryEntry } from "./diary";
 import type { StudyEntry } from "../types";
 
 const Diary: React.FC = () => {
-  // State for diary entries
   const [entries, setEntries] = useState<StudyEntry[]>([]);
 
-  // Subscribe to real-time updates from Firebase
   useEffect(() => {
     const unsubscribe = listenDiaryEntries((newEntries: StudyEntry[]) => {
       setEntries(newEntries);
     });
-
-    // Cleanup subscription
     return () => {
       if (unsubscribe) unsubscribe();
     };
   }, []);
 
-  // Handle deleting an entry
   const handleDeleteEntry = async (id: string) => {
     try {
       await deleteDiaryEntry(id);
     } catch (err) {
       console.error("Failed to delete entry:", err);
-    }
-  };
-
-  // Handle adding an entry
-  const handleAddEntry = async (
-    entry: any
-  ) => {
-    try {
-      await addDiaryEntry(entry);
-    } catch (err) {
-      console.error("Failed to add entry:", err);
     }
   };
 
@@ -59,10 +42,9 @@ const Diary: React.FC = () => {
 
   const streak = calculateStreak(entries);
 
-  // Explicit return with parentheses to avoid JSX parsing issues
   return (
     <>
-      <EntryForm onAddEntry={handleAddEntry} streak={streak} />
+      {/* Removed the duplicate EntryForm */}
       <DiaryUI entries={entries} onDeleteEntry={handleDeleteEntry} />
     </>
   );
