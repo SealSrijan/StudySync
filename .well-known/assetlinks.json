@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.studysync_chi.twa",
+    "sha256_cert_fingerprints": ["11:C3:B7:5C:0F:14:17:B5:9F:3D:5E:4F:9C:0F:F8:0C:5B:33:8F:C8:FD:0A:CA:0A:C6:93:51:40:B6:54:C8:8E"]
+  }
+}]
