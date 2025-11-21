@@ -15,7 +15,7 @@ const EntryForm: React.FC<EntryFormProps> = ({ onAddEntry, streak }) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newEntry: Omit<StudyEntry, 'id' | 'createdAt' | 'uid'> = {
-      date: formData.get('date') as string,
+      date: new Date().toISOString().slice(0, 10),
       subject: formData.get('subject') as string,
       timeSlot: formData.get('timeSlot') as string,
       chapter: formData.get('chapter') as string,
@@ -46,7 +46,7 @@ const EntryForm: React.FC<EntryFormProps> = ({ onAddEntry, streak }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="date" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Date</label>
-            <input type="date" id="date" name="date" value={date} onChange={(e) => setDate(e.target.value)} required className="w-full p-2 rounded-lg border bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-pink-500 focus:border-pink-500"/>
+            <input type="date" id="date" name="date" value={date} readOnly className="w-full p-2 rounded-lg border bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-pink-500 focus:border-pink-500"/>
           </div>
           <div>
             <label htmlFor="subject" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Subject</label>
